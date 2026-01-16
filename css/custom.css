@@ -54,3 +54,17 @@
   pointer-events: none !important;
 }
 
+#loading,
+#loading-box,
+.pacman,
+.loading {
+  display: none !important;
+}
+
+#loading,
+#loading-box,
+.pacman,
+.loading {
+  display: none !important;
+}
+
