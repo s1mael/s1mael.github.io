@@ -28,3 +28,10 @@
 #footer {
   background: #000000; /* 可选 */
 }
+
+/* 强制隐藏 Pacman 点击特效（兜底方案） */
+.pacman,
+.pacman-container,
+.cursor-effects {
+  display: none !important;
+}
