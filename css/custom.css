@@ -35,3 +35,22 @@
 .cursor-effects {
   display: none !important;
 }
+
+/* ===== 强制杀死所有 Butterfly 过渡 / 点击 / loading 特效 ===== */
+#loading,
+#loading-box,
+#page-header::before,
+#page-header::after,
+.pjax-loading,
+.pacman,
+.pace,
+.pace-progress,
+[data-pjax],
+#transition,
+#page-transition {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
