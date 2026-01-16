@@ -1,0 +1,30 @@
+/* ===== 导航栏白色 ===== */
+#nav,
+#nav a,
+#nav .site-name,
+#nav .menus_item a,
+#nav .menus_item i {
+  color: #ffffff !important;
+}
+
+#nav a:hover {
+  color: #ffffff !important;
+}
+
+/* 滚动后依然白色（Butterfly 会切 class） */
+#nav.nav-fixed,
+#nav.nav-visible,
+#nav.nav-fixed a,
+#nav.nav-visible a {
+  color: #ffffff !important;
+}
+
+/* ===== 页脚白色 ===== */
+#footer,
+#footer a {
+  color: #ffffff !important;
+}
+
+#footer {
+  background: #000000; /* 可选 */
+}
