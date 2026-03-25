@@ -88,3 +88,13 @@ a.navbar-item.is-active {
   border-radius: 999px;
   box-shadow: 0 10px 24px rgba(50, 115, 220, 0.18);
 }
+
+.flink-list-item .flink-item-icon,
+.flink-list-item .flink-item-icon img {
+  width: 56px !important;
+  height: 56px !important;
+}
+
+.flink-list-item .flink-item-icon img {
+  object-fit: cover;
+}
