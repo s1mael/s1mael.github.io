@@ -109,4 +109,5 @@ a.navbar-item.is-active {
 
 .flink-list-item .flink-item-icon img {
   object-fit: cover;
+  border-radius: 50% !important;
 }
