@@ -1,82 +1,90 @@
-/* ===== 导航栏白色 ===== */
-#nav,
-#nav a,
-#nav .site-name,
-#nav .menus_item a,
-#nav .menus_item i {
-  color: #ffffff !important;
+body {
+  background:
+    radial-gradient(circle at top left, rgba(110, 168, 254, 0.12), transparent 32%),
+    radial-gradient(circle at top right, rgba(72, 190, 178, 0.10), transparent 28%),
+    linear-gradient(180deg, #f8fbff 0%, #f4f7fb 100%);
 }
 
-#nav a:hover {
-  color: #ffffff !important;
+.navbar.is-fixed-top,
+.navbar.is-fixed-bottom,
+.navbar.navbar-main {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgba(31, 45, 61, 0.08);
 }
 
-/* 滚动后依然白色（Butterfly 会切 class） */
-#nav.nav-fixed,
-#nav.nav-visible,
-#nav.nav-fixed a,
-#nav.nav-visible a {
-  color: #ffffff !important;
+.navbar-menu,
+.navbar-brand,
+.navbar-main .navbar-menu {
+  background: transparent !important;
 }
 
-/* ===== 页脚白色 ===== */
-#footer,
-#footer a {
-  color: #ffffff !important;
+.navbar-item,
+.navbar-link {
+  border-radius: 999px;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
-#footer {
-  background: #000000; /* 可选 */
+a.navbar-item:hover,
+.navbar-link:hover,
+a.navbar-item.is-active {
+  background: rgba(50, 115, 220, 0.10) !important;
+  color: #2457a7 !important;
+  transform: translateY(-1px);
 }
 
-/* 强制隐藏 Pacman 点击特效（兜底方案） */
-.pacman,
-.pacman-container,
-.cursor-effects {
-  display: none !important;
+.card,
+.searchbox .searchbox-container,
+.modal-card {
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
 }
 
-/* ===== 强制杀死所有 Butterfly 过渡 / 点击 / loading 特效 ===== */
-#loading,
-#loading-box,
-#page-header::before,
-#page-header::after,
-.pjax-loading,
-.pacman,
-.pace,
-.pace-progress,
-[data-pjax],
-#transition,
-#page-transition {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
+.card-content {
+  padding: 1.35rem;
 }
 
-#loading,
-#loading-box,
-.pacman,
-.loading {
-  display: none !important;
+.article .content blockquote,
+.content blockquote {
+  background: rgba(50, 115, 220, 0.06);
+  border-left: 4px solid rgba(50, 115, 220, 0.42);
+  border-radius: 10px;
 }
 
-#loading,
-#loading-box,
-.pacman,
-.loading {
-  display: none !important;
+.button.is-primary,
+.button.is-light,
+.button.is-white {
+  border-radius: 999px;
+  box-shadow: none;
 }
 
+.button.is-primary {
+  background: linear-gradient(135deg, #3273dc 0%, #48beb2 100%);
+  border: none;
+}
 
-/* ===== 彻底移除 Butterfly Pac-Man loading ===== */
-#loading,
-#loading-box,
-.loading,
-.loading-bg,
-.loading-img {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
+.button.is-primary:hover {
+  filter: brightness(1.03);
+}
+
+.avatar {
+  box-shadow: 0 12px 28px rgba(50, 115, 220, 0.18);
+}
+
+.footer {
+  background: rgba(255, 255, 255, 0.76) !important;
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.footer,
+.footer a {
+  color: #526071 !important;
+}
+
+#back-to-top {
+  border-radius: 999px;
+  box-shadow: 0 10px 24px rgba(50, 115, 220, 0.18);
 }
