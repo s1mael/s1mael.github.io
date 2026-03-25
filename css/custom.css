@@ -61,12 +61,24 @@ a.navbar-item.is-active {
 }
 
 .button.is-primary {
-  background: linear-gradient(135deg, #3273dc 0%, #48beb2 100%);
+  background: linear-gradient(135deg, #5f8ee6 0%, #7fcfc5 100%);
   border: none;
 }
 
 .button.is-primary:hover {
   filter: brightness(1.03);
+}
+
+#card-info-btn {
+  background: linear-gradient(135deg, #eef4ff 0%, #eefaf7 100%) !important;
+  color: #4b6697 !important;
+  border: 1px solid rgba(95, 142, 230, 0.16) !important;
+  box-shadow: 0 8px 18px rgba(95, 142, 230, 0.10);
+}
+
+#card-info-btn i,
+#card-info-btn span {
+  color: inherit !important;
 }
 
 .avatar {
