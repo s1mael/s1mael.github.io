@@ -111,3 +111,21 @@ a.navbar-item.is-active {
   object-fit: cover;
   border-radius: 50% !important;
 }
+
+.butterfly-flink-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.flink-list-item a {
+  display: flex !important;
+  align-items: center;
+  gap: 14px;
+}
+
+.flink-list-item .flink-item-info {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
