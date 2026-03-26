@@ -18,14 +18,14 @@ body {
 #page,
 #category,
 #tag {
-  background: rgba(244, 228, 200, 0.62);
-  border: 1px solid rgba(173, 126, 73, 0.16);
+  background: rgba(236, 211, 160, 0.36) !important;
+  border: 1px solid rgba(173, 126, 73, 0.18);
   border-radius: 18px;
-  box-shadow: 0 18px 44px rgba(73, 48, 23, 0.10);
+  box-shadow: 0 18px 44px rgba(73, 48, 23, 0.08);
 }
 
 #card-info-btn {
-  background: linear-gradient(135deg, rgba(232, 205, 160, 0.92) 0%, rgba(214, 175, 114, 0.92) 100%) !important;
+  background: linear-gradient(135deg, rgba(232, 205, 160, 0.78) 0%, rgba(214, 175, 114, 0.78) 100%) !important;
   color: #5c3d20 !important;
   border: 1px solid rgba(173, 126, 73, 0.22) !important;
   box-shadow: 0 8px 18px rgba(92, 63, 32, 0.12);
@@ -42,7 +42,7 @@ body {
 }
 
 #footer {
-  background: rgba(240, 224, 198, 0.74) !important;
+  background: rgba(236, 211, 160, 0.32) !important;
   backdrop-filter: blur(10px);
   border-top: 1px solid rgba(173, 126, 73, 0.14);
 }
