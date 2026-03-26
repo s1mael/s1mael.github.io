@@ -85,10 +85,6 @@ a.navbar-item.is-active {
   box-shadow: 0 12px 28px rgba(50, 115, 220, 0.18);
 }
 
-.card.widget[data-type="tags"] .tags .tag {
-  font-weight: 700;
-}
-
 .footer {
   background: rgba(255, 255, 255, 0.76) !important;
   backdrop-filter: blur(10px);
