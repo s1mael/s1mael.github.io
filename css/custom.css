@@ -18,6 +18,11 @@ body {
   box-shadow: 0 10px 30px rgba(92, 63, 32, 0.10);
 }
 
+#page-header.not-home-page {
+  background-image: linear-gradient(135deg, rgba(23, 56, 49, 0.92), rgba(36, 78, 67, 0.88)) !important;
+  background-color: #1f4d42 !important;
+}
+
 #aside-content .card-widget,
 #recent-posts .recent-post-item,
 #archive,
