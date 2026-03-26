@@ -85,10 +85,8 @@ a.navbar-item.is-active {
   box-shadow: 0 12px 28px rgba(50, 115, 220, 0.18);
 }
 
-.card.widget[data-type="profile"] .is-size-6.is-block {
+.card.widget[data-type="tags"] .tags .tag {
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .footer {
