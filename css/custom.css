@@ -5,75 +5,30 @@ body {
     linear-gradient(180deg, #f8fbff 0%, #f4f7fb 100%);
 }
 
-.navbar.is-fixed-top,
-.navbar.is-fixed-bottom,
-.navbar.navbar-main {
+#nav,
+#page-header.nav-fixed #nav {
   background: rgba(243, 229, 206, 0.82);
   backdrop-filter: blur(14px);
   box-shadow: 0 10px 30px rgba(92, 63, 32, 0.10);
 }
 
-.navbar-menu,
-.navbar-brand,
-.navbar-main .navbar-menu {
-  background: transparent !important;
-}
-
-.navbar-item,
-.navbar-link {
-  border-radius: 999px;
-  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
-}
-
-a.navbar-item:hover,
-.navbar-link:hover,
-a.navbar-item.is-active {
-  background: rgba(50, 115, 220, 0.10) !important;
-  color: #2457a7 !important;
-  transform: translateY(-1px);
-}
-
-.card,
-.searchbox .searchbox-container,
-.modal-card {
+#aside-content .card-widget,
+#recent-posts .recent-post-item,
+#archive,
+#page,
+#category,
+#tag {
   background: rgba(244, 228, 200, 0.62);
   border: 1px solid rgba(173, 126, 73, 0.16);
   border-radius: 18px;
   box-shadow: 0 18px 44px rgba(73, 48, 23, 0.10);
 }
 
-.card-content {
-  padding: 1.35rem;
-}
-
-.article .content blockquote,
-.content blockquote {
-  background: rgba(50, 115, 220, 0.06);
-  border-left: 4px solid rgba(50, 115, 220, 0.42);
-  border-radius: 10px;
-}
-
-.button.is-primary,
-.button.is-light,
-.button.is-white {
-  border-radius: 999px;
-  box-shadow: none;
-}
-
-.button.is-primary {
-  background: linear-gradient(135deg, #5f8ee6 0%, #7fcfc5 100%);
-  border: none;
-}
-
-.button.is-primary:hover {
-  filter: brightness(1.03);
-}
-
 #card-info-btn {
-  background: linear-gradient(135deg, #eef4ff 0%, #eefaf7 100%) !important;
-  color: #4b6697 !important;
-  border: 1px solid rgba(95, 142, 230, 0.16) !important;
-  box-shadow: 0 8px 18px rgba(95, 142, 230, 0.10);
+  background: linear-gradient(135deg, rgba(232, 205, 160, 0.92) 0%, rgba(214, 175, 114, 0.92) 100%) !important;
+  color: #5c3d20 !important;
+  border: 1px solid rgba(173, 126, 73, 0.22) !important;
+  box-shadow: 0 8px 18px rgba(92, 63, 32, 0.12);
 }
 
 #card-info-btn i,
@@ -81,24 +36,15 @@ a.navbar-item.is-active {
   color: inherit !important;
 }
 
-.avatar {
-  box-shadow: 0 12px 28px rgba(50, 115, 220, 0.18);
+#aside-content .card-widget,
+#recent-posts .recent-post-item {
+  backdrop-filter: blur(10px);
 }
 
-.footer {
+#footer {
   background: rgba(240, 224, 198, 0.74) !important;
   backdrop-filter: blur(10px);
   border-top: 1px solid rgba(173, 126, 73, 0.14);
-}
-
-.footer,
-.footer a {
-  color: #526071 !important;
-}
-
-#back-to-top {
-  border-radius: 999px;
-  box-shadow: 0 10px 24px rgba(50, 115, 220, 0.18);
 }
 
 .flink-list-item .flink-item-icon,
