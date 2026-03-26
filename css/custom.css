@@ -13,14 +13,14 @@ body {
 
 #nav,
 #page-header.nav-fixed #nav {
-  background: rgba(243, 229, 206, 0.82);
+  background: rgba(220, 226, 232, 0.84);
   backdrop-filter: blur(14px);
-  box-shadow: 0 10px 30px rgba(92, 63, 32, 0.10);
+  box-shadow: 0 10px 30px rgba(68, 78, 92, 0.14);
 }
 
 #page-header.not-home-page {
-  background-image: linear-gradient(135deg, rgba(23, 56, 49, 0.92), rgba(36, 78, 67, 0.88)) !important;
-  background-color: #1f4d42 !important;
+  background-image: linear-gradient(135deg, rgba(23, 56, 49, 0.78), rgba(36, 78, 67, 0.72)) !important;
+  background-color: rgba(31, 77, 66, 0.72) !important;
 }
 
 #aside-content .card-widget,
